@@ -1,0 +1,98 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    int id;
+    char type;
+    int arrival;
+    int burst;
+    int waiting;
+    int turnaround;
+    int ct;  // Completion time
+} Process;
+
+int compare(const void *a, const void *b) {
+    return ((Process*)a)->arrival - ((Process*)b)->arrival;
+}
+
+int main() {
+    int n;
+    printf("Enter number of processes: ");
+    scanf("%d", &n);
+
+    Process *processes = malloc(n * sizeof(Process));
+    Process *system = malloc(n * sizeof(Process));
+    Process *user = malloc(n * sizeof(Process));
+    int sys_count = 0, user_count = 0;
+
+    // Read processes
+    for(int i = 0; i < n; i++) {
+        printf("Process %d (S/U arrival burst): ", i+1);
+        processes[i].id = i+1;
+        scanf(" %c %d %d", &processes[i].type, &processes[i].arrival, &processes[i].burst);
+
+        if(processes[i].type == 'S') system[sys_count++] = processes[i];
+        else user[user_count++] = processes[i];
+    }
+
+    qsort(system, sys_count, sizeof(Process), compare);
+    qsort(user, user_count, sizeof(Process), compare);
+
+    int current_time = 0;
+    int s_ptr = 0, u_ptr = 0;
+
+    // Process system processes first
+    while(s_ptr < sys_count) {
+        if(system[s_ptr].arrival > current_time) {
+            current_time = system[s_ptr].arrival;
+        }
+        system[s_ptr].waiting = current_time - system[s_ptr].arrival;
+        system[s_ptr].turnaround = system[s_ptr].waiting + system[s_ptr].burst;
+        system[s_ptr].ct = current_time + system[s_ptr].burst;
+        current_time = system[s_ptr].ct;
+        s_ptr++;
+    }
+
+    // Then process user processes
+    while(u_ptr < user_count) {
+        if(user[u_ptr].arrival > current_time) {
+            current_time = user[u_ptr].arrival;
+        }
+        user[u_ptr].waiting = current_time - user[u_ptr].arrival;
+        user[u_ptr].turnaround = user[u_ptr].waiting + user[u_ptr].burst;
+        user[u_ptr].ct = current_time + user[u_ptr].burst;
+        current_time = user[u_ptr].ct;
+        u_ptr++;
+    }
+
+    float avg_wait = 0, avg_turn = 0;
+    printf("| Type | Process ID | Arrival | Burst | Waiting | Turnaround | Completion |\n");
+
+
+    printf("\nSystem Processes:\n");
+    for(int i = 0; i < sys_count; i++) {
+        printf("|  S   |     P%d     |   %3d   |  %3d  |   %3d   |    %3d     |    %3d     |\n",
+               system[i].id, system[i].arrival, system[i].burst,
+               system[i].waiting, system[i].turnaround, system[i].ct);
+        avg_wait += system[i].waiting;
+        avg_turn += system[i].turnaround;
+    }
+
+    printf("\nUser Processes:\n");
+    for(int i = 0; i < user_count; i++) {
+        printf("|  U   |     P%d     |   %3d   |  %3d  |   %3d   |    %3d     |    %3d     |\n",
+               user[i].id, user[i].arrival, user[i].burst,
+               user[i].waiting, user[i].turnaround, user[i].ct);
+        avg_wait += user[i].waiting;
+        avg_turn += user[i].turnaround;
+    }
+    avg_wait /= n;
+    avg_turn /= n;
+    printf("\nAverage Waiting Time: %.2f\n", avg_wait);
+    printf("Average Turnaround Time: %.2f\n", avg_turn);
+
+    free(processes);
+    free(system);
+    free(user);
+    return 0;
+}
